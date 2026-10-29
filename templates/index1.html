@@ -1,0 +1,847 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SIVAM - Sistema Inteligente Vestível de Análise de Movimento</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: "Segoe UI", Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: #fff;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        header {
+            background: linear-gradient(135deg, #4db8ff 0%, #3399ff 100%);
+            padding: 30px;
+            text-align: center;
+            color: white;
+        }
+
+        header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .content {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 0;
+        }
+
+        /* Painel lateral */
+        .painel {
+            background: #f8f9fa;
+            padding: 30px;
+            border-right: 2px solid #e0e0e0;
+        }
+
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .card h3 {
+            color: #3399ff;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+            border-bottom: 2px solid #4db8ff;
+            padding-bottom: 8px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #333;
+            font-weight: 500;
+        }
+
+        input[type="text"],
+        input[type="number"],
+        select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 5px;
+            font-size: 14px;
+            transition: border 0.3s;
+        }
+
+        input:focus,
+        select:focus {
+            outline: none;
+            border-color: #4db8ff;
+        }
+
+        button {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #4db8ff 0%, #3399ff 100%);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 4px 15px rgba(77, 184, 255, 0.4);
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(77, 184, 255, 0.6);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        .btn-parar {
+            background: linear-gradient(135deg, #ff4757 0%, #e84118 100%);
+            box-shadow: 0 4px 15px rgba(255, 71, 87, 0.4);
+            margin-top: 10px;
+        }
+
+        .btn-parar:hover {
+            box-shadow: 0 6px 20px rgba(255, 71, 87, 0.6);
+        }
+
+        /* Área de visualização */
+        .visualizacao {
+            padding: 30px;
+            background: white;
+        }
+
+        .status {
+            background: #e8f4f8;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #4db8ff;
+        }
+
+        .status h4 {
+            color: #3399ff;
+            margin-bottom: 8px;
+        }
+
+        #statusTexto {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .grafico-container {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            height: 500px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border: 2px dashed #ccc;
+        }
+
+        canvas {
+            max-width: 100%;
+            max-height: 100%;
+        }
+
+        .placeholder {
+            text-align: center;
+            color: #999;
+        }
+
+        .placeholder svg {
+            width: 100px;
+            height: 100px;
+            margin-bottom: 20px;
+            opacity: 0.3;
+        }
+
+        /* Animação de captura */
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        .capturando .status {
+            animation: pulse 1.5s infinite;
+            border-left-color: #2ecc71;
+            background: #e8f8f0;
+        }
+
+        /* MODAL POP-UP */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            animation: fadeIn 0.3s;
+        }
+
+        .modal-overlay.ativo {
+            display: flex;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 50px rgba(0, 0, 0, 0.5);
+            animation: slideIn 0.3s;
+            background-image: url('robo-anatomica.png');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            position: relative;
+        }
+
+        .modal-content::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            z-index: -1;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #4db8ff;
+        }
+
+        .modal-header h2 {
+            color: #3399ff;
+            font-size: 1.8em;
+        }
+
+        .btn-fechar {
+            background: transparent;
+            border: none;
+            font-size: 28px;
+            color: #999;
+            cursor: pointer;
+            width: auto;
+            padding: 0;
+            line-height: 1;
+            transition: color 0.3s;
+        }
+
+        .btn-fechar:hover {
+            color: #ff4757;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .sensores-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .sensor-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #4db8ff;
+        }
+
+        .sensor-item label {
+            color: #3399ff;
+            font-weight: 600;
+            font-size: 15px;
+        }
+
+        .sensor-item input {
+            margin-top: 8px;
+        }
+
+        .modal-footer {
+            display: flex;
+            gap: 10px;
+            margin-top: 25px;
+        }
+
+        .modal-footer button {
+            flex: 1;
+        }
+
+        .btn-cancelar {
+            background: linear-gradient(135deg, #95a5a6 0%, #7f8c8d 100%);
+        }
+
+        .btn-cancelar:hover {
+            box-shadow: 0 6px 20px rgba(149, 165, 166, 0.6);
+        }
+
+        #btnCarregarGrafico {
+            margin-top: 15px;
+            width: auto;
+            padding: 10px 20px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <header>
+            
+            <h1><img src="{{ url_for('static', filename='img/logo.jpg') }}" alt="SIVAM Logo" width="60"> SIVAM</h1>
+            <p> Sistema Inteligente Vestível de Análise de Movimento</p>
+        </header>
+
+        <div class="content">
+            <!-- Painel Lateral -->
+            <div class="painel">
+                <div class="card">
+                    <h3>👤 Dados do Paciente</h3>
+                    <div class="form-group">
+                        <label for="nome">Nome Completo:</label>
+                        <input type="text" id="nome" placeholder="Ex: João da Silva">
+                    </div>
+                    <div class="form-group">
+                        <label for="idade">Idade:</label>
+                        <input type="number" id="idade" min="1" max="120" placeholder="Ex: 35">
+                    </div>
+                    <div class="form-group">
+                        <label for="altura">Altura (cm):</label>
+                        <input type="number" id="altura" min="50" max="250" placeholder="Ex: 175">
+                    </div>
+
+
+                    <div class="form-group">
+                        <label for="outrasInfo">Outras informações:</label>
+                        <input type="text" id="outrasInfo" placeholder="Ex: Observações adicionais">
+                    </div>
+                    <div class="form-group">
+                        <label for="condicao">Condição Física:</label>
+                        <select id="condicao">
+                            <option value="">Selecione...</option>
+                            <option value="sedentario">Sedentário</option>
+                            <option value="leve">Atividade Leve</option>
+                            <option value="moderado">Atividade Moderada</option>
+                            <option value="intenso">Atividade Intensa</option>
+                            <option value="atleta">Atleta</option>
+                        </select>
+                    </div>
+                    <div class="botoes">
+                        <button id="btnPosicoes" onclick="abrirModalPosicoes()"> Posições dos Sensores</button>
+                    </div>
+                    <div style="height: 15px;"></div>
+                    <div class="botoes">
+                        <button id="btnAnatomia" onclick="abrirModalAnatomica()"> Comunicação com Sensores</button>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3>⚙️ Controles</h3>
+                    <button id="btnIniciar" onclick="iniciarCapturaEEnviarDados()">
+                        ▶️ Iniciar Captura
+                    </button>
+                    <button id="btnParar" class="btn-parar" onclick="pararCaptura()" disabled>
+                        ⏹️ Parar Captura
+                    </button>
+                </div>
+            </div>
+
+            <!-- Área de Visualização -->
+            <div class="visualizacao">
+                <div class="status" id="statusBar">
+                    <h4>Status do Sistema</h4>
+                    <p id="statusTexto">Aguardando início da captura...</p>
+                </div>
+
+                <div class="grafico-container" id="graficoArea">
+                    <div class="placeholder">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M3 3v18h18" />
+                            <path d="M18 9l-5 5-3-3-4 4" />
+                        </svg>
+                        <p>Os dados aparecerão aqui quando a captura iniciar</p>
+                    </div>
+                    <canvas id="grafico" style="display:none;"></canvas>
+                    <button id="btnCarregarGrafico" onclick="carregarGraficoDeArquivo()">
+                        📊 Carregar Gráfico do Arquivo
+                    </button>
+                    <input type="file" id="arquivoInput" accept=".txt,.csv,.json" style="display: none;">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL POP-UP POSIÇÕES DOS SENSORES -->
+    <div class="modal-overlay" id="modalPosicoes">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Altura dos Sensores</h2>
+                <button class="btn-fechar" onclick="fecharModalPosicoes()">&times;</button>
+            </div>
+
+            <div class="sensores-grid">
+                <div class="sensor-item">
+                    <label for="sensor1">🔵 Sensor 1 - Quadril (cm):</label>
+                    <input type="number" id="sensor1" min="0" max="250" step="0.1" placeholder="Ex: 8.5">
+                </div>
+                <div class="sensor-item">
+                    <label for="sensor2">🔵 Sensor 2 - Coxa Direita (cm):</label>
+                    <input type="number" id="sensor2" min="0" max="250" step="0.1" placeholder="Ex: 50.0">
+                </div>
+                <div class="sensor-item">
+                    <label for="sensor3">🔵 Sensor 3 - Perna Direita (cm):</label>
+                    <input type="number" id="sensor3" min="0" max="250" step="0.1" placeholder="Ex: 95.0">
+                </div>
+                <div class="sensor-item">
+                    <label for="sensor4">🔵 Sensor 4 - Pé Direito (cm):</label>
+                    <input type="number" id="sensor4" min="0" max="250" step="0.1" placeholder="Ex: 130.0">
+                </div>
+                <div class="sensor-item">
+                    <label for="sensor5">🔵 Sensor 5 - Coxa Esquerda (cm):</label>
+                    <input type="number" id="sensor5" min="0" max="250" step="0.1" placeholder="Ex: 95.0">
+                </div>
+                <div class="sensor-item">
+                    <label for="sensor6">🔵 Sensor 6 - Perna Esquerda (cm):</label>
+                    <input type="number" id="sensor6" min="0" max="250" step="0.1" placeholder="Ex: 50.0">
+                </div>
+                <div class="sensor-item">
+                    <label for="sensor7">🔵 Sensor 7 - Pé Esquerdo (cm):</label>
+                    <input type="number" id="sensor7" min="0" max="250" step="0.1" placeholder="Ex: 8.5">
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button class="btn-cancelar" onclick="fecharModalPosicoes()">Cancelar</button>
+                <button onclick="salvarPosicoes()">✅ Salvar Posições</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Importar Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script>
+        // Conectar ao servidor WebSocket
+        let ws = null;
+
+        function conectarWebSocket() {
+            ws = new WebSocket('ws://192.168.0.23:8080');
+
+            ws.onopen = () => {
+                console.log('✅ Conectado ao servidor');
+                document.getElementById("statusTexto").textContent = "🟢 Conectado aos sensores";
+            };
+
+            ws.onmessage = (event) => {
+                const dados = JSON.parse(event.data);
+                dadosGrafico.push(dados.valor);
+                if (dadosGrafico.length > 100) dadosGrafico.shift();
+                desenharGrafico();
+            };
+
+            ws.onerror = (error) => {
+                console.error('❌ Erro WebSocket:', error);
+            };
+
+            ws.onclose = () => {
+                console.log('Conexão fechada');
+                setTimeout(conectarWebSocket, 3000); // Reconectar
+            };
+        }
+        let capturando = false;
+        let dadosGrafico = [];
+        let intervalo = null;
+        let posicoesSensores = {};
+        let myChart = null;
+
+        // Função para abrir modal
+        function abrirModalPosicoes() {
+            document.getElementById("modalPosicoes").classList.add("ativo");
+            for (let i = 1; i <= 7; i++) {
+                if (posicoesSensores[`sensor${i}`]) {
+                    document.getElementById(`sensor${i}`).value = posicoesSensores[`sensor${i}`];
+                }
+            }
+        }
+
+        // Função para fechar modal
+        function fecharModalPosicoes() {
+            document.getElementById("modalPosicoes").classList.remove("ativo");
+        }
+
+        // Função para salvar posições
+        function salvarPosicoes() {
+            let todasPreenchidas = true;
+            for (let i = 1; i <= 7; i++) {
+                const valor = document.getElementById(`sensor${i}`).value;
+                if (!valor) {
+                    todasPreenchidas = false;
+                    break;
+                }
+                posicoesSensores[`sensor${i}`] = parseFloat(valor);
+            }
+
+            if (!todasPreenchidas) {
+                alert("⚠️ Por favor, preencha todas as alturas dos sensores!");
+                return;
+            }
+
+            console.log("Posições dos sensores salvas:", posicoesSensores);
+            alert("✅ Posições dos sensores salvas com sucesso!");
+            fecharModalPosicoes();
+        }
+
+        // Fechar modal ao clicar fora
+        document.getElementById("modalPosicoes").addEventListener("click", function (e) {
+            if (e.target === this) {
+                fecharModalPosicoes();
+            }
+        });
+        function iniciarCapturaEEnviarDados() {
+            // Enviar comando para o dispositivo
+            fetch('http://10.4.10.69:5000/button/press', {
+                method: 'POST'
+            })
+                .then(response => {
+                    console.log('Comando enviado para o dispositivo');
+                })
+                .catch(error => {
+                    console.error('Erro ao enviar comando:', error);
+                });
+            iniciarCaptura();
+            // Aqui você pode adicionar a lógica para enviar os dados para o servidor
+            enviarDadosParaServidor();
+        }
+        function enviarDadosParaServidor() {
+            // Exemplo de envio de dados via fetch (AJAX)
+            fetch('https://ambteste.com/sivam/recebedados.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    nome: document.getElementById("nome").value,
+                    idade: document.getElementById("idade").value,
+                    altura: document.getElementById("altura").value,
+                    condicao: document.getElementById("condicao").value,
+                    dadosCapturados: dadosGrafico
+                })
+            })
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Sucesso:', data);
+                    //alert('✅ Dados enviados com sucesso!');
+                })
+                .catch((error) => {
+                    console.error('Erro:', error);
+                    alert('❌ Erro ao enviar os dados.');
+                });
+        }
+
+        // Função para validar campos
+        function validarCampos() {
+            const nome = document.getElementById("nome").value.trim();
+            const idade = document.getElementById("idade").value;
+            const altura = document.getElementById("altura").value;
+            const condicao = document.getElementById("condicao").value;
+
+            if (!nome || !idade || !altura || !condicao) {
+                alert("⚠️ Por favor, preencha todos os campos antes de iniciar!");
+                return false;
+            }
+            return true;
+        }
+
+        // Iniciar captura (usando canvas nativo)
+        function iniciarCaptura() {
+            if (!validarCampos()) return;
+
+            // Destruir gráfico Chart.js se existir
+            if (myChart) {
+                myChart.destroy();
+                myChart = null;
+            }
+
+            capturando = true;
+            dadosGrafico = [];
+
+            document.getElementById("btnIniciar").disabled = true;
+            document.getElementById("btnParar").disabled = false;
+            document.getElementById("statusTexto").textContent = "🟢 Capturando dados em tempo real...";
+            document.querySelector(".status").classList.add("capturando");
+
+            document.querySelector(".placeholder").style.display = "none";
+            document.getElementById("grafico").style.display = "block";
+
+            // Simular captura de dados
+            intervalo = setInterval(() => {
+                const novoDado = Math.sin(Date.now() / 1000) * 50 + Math.random() * 20;
+                dadosGrafico.push(novoDado);
+                if (dadosGrafico.length > 100) dadosGrafico.shift();
+                desenharGrafico();
+            }, 100);
+
+            console.log("Captura iniciada para:", {
+                nome: document.getElementById("nome").value,
+                idade: document.getElementById("idade").value,
+                altura: document.getElementById("altura").value,
+                condicao: document.getElementById("condicao").value,
+                sensores: posicoesSensores
+            });
+        }
+
+        // Parar captura
+        function pararCaptura() {
+            capturando = false;
+            clearInterval(intervalo);
+
+
+            fetch('http://10.4.10.69:5000/button/press', {
+                method: 'POST'
+            })
+                .then(response => {
+                    console.log('Comando enviado para o dispositivo');
+                })
+                .catch(error => {
+                    console.error('Erro ao enviar comando:', error);
+                });
+
+            document.getElementById("btnIniciar").disabled = false;
+            document.getElementById("btnParar").disabled = true;
+            document.getElementById("statusTexto").textContent = "⏸️ Captura pausada. Total de " + dadosGrafico.length + " amostras.";
+            document.querySelector(".status").classList.remove("capturando");
+        }
+        // Função para abrir modal com imagem anatômica e discos vermelhos
+        function abrirModalAnatomica() {
+            const modal = document.createElement('div');
+            modal.className = 'modal-overlay ativo';
+            modal.id = 'modalAnatomica';
+            modal.innerHTML = `
+                <div class="modal-content" style="max-width: 800px; padding: 20px; height: auto;">
+                    <div class="modal-header">
+                        <h2>Conexão com Sensores</h2>
+                        <button class="btn-fechar" onclick="fecharModalAnatomica()">&times;</button>
+                    </div>
+                    <div style="position: relative; display: flex; justify-content: center; align-items: center;">
+                        <div style="position: relative; display: inline-block;">
+                            <img src="{{ url_for('static', filename='img/robo-anatomica.jpg') }}" alt="Sensores" style="max-width: 100%; height: auto; display: block;>
+                           <div style="position: absolute; top: 233px; left: 116px; width: 20px; height: 20px; background-color: red; border-radius: 50%; transform: translate(-50%, -50%);"></div>
+                            <div style="position: absolute; top: 311px; left: 90px; width: 20px; height: 20px; background-color: red; border-radius: 50%; transform: translate(-50%, -50%);"></div>
+                            <div style="position: absolute; top: 311px; left: 144px; width: 20px; height: 20px; background-color: red; border-radius: 50%; transform: translate(-50%, -50%);"></div>
+                            <div style="position: absolute; top: 402px; left: 93px; width: 20px; height: 20px; background-color: red; border-radius: 50%; transform: translate(-50%, -50%);"></div>
+                            <div style="position: absolute; top: 402px; left: 144px; width: 20px; height: 20px; background-color: red; border-radius: 50%; transform: translate(-50%, -50%);"></div>
+                            <div style="position: absolute; top: 489px; left: 93px; width: 20px; height: 20px; background-color: red; border-radius: 50%; transform: translate(-50%, -50%);"></div>
+                            <div style="position: absolute; top: 489px; left: 144px; width: 20px; height: 20px; background-color: red; border-radius: 50%; transform: translate(-50%, -50%);"></div>
+
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+
+        function fecharModalAnatomica() {
+            const modal = document.getElementById('modalAnatomica');
+            if (modal) {
+                modal.remove();
+            }
+        }
+        // Desenhar gráfico com canvas nativo (tempo real)
+        function desenharGrafico() {
+            const canvas = document.getElementById("grafico");
+            const ctx = canvas.getContext("2d");
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Eixos
+            ctx.strokeStyle = "#ccc";
+            ctx.beginPath();
+            ctx.moveTo(40, 10);
+            ctx.lineTo(40, canvas.height - 30);
+            ctx.lineTo(canvas.width - 10, canvas.height - 30);
+            ctx.stroke();
+
+            if (dadosGrafico.length < 2) return;
+
+            ctx.strokeStyle = "#4db8ff";
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+
+            const escalaX = (canvas.width - 50) / dadosGrafico.length;
+            const escalaY = (canvas.height - 40) / 100;
+
+            dadosGrafico.forEach((val, i) => {
+                const x = 40 + i * escalaX;
+                const y = canvas.height - 30 - (val + 50) * escalaY;
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            });
+
+            ctx.stroke();
+        }
+
+        // Carregar gráfico de arquivo (usando Chart.js)
+        function carregarGraficoDeArquivo() {
+            // Parar captura se estiver ativa
+            if (capturando) {
+                pararCaptura();
+            }
+
+            const input = document.getElementById('arquivoInput');
+            input.click();
+            input.onchange = () => {
+                const file = input.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const conteudo = e.target.result;
+                    const linhas = conteudo.trim().split('\n');
+                    const dados = linhas.map(linha => {
+                        const valores = linha.trim().split(/\s+/);
+                        return {
+                            tempo: parseFloat(valores[0]),
+                            angulo: parseFloat(valores[1])
+                        };
+                    });
+
+                    const labels = dados.map(d => d.tempo.toFixed(2));
+                    const valores = dados.map(d => d.angulo);
+
+                    document.querySelector(".placeholder").style.display = "none";
+                    const canvas = document.getElementById("grafico");
+                    canvas.style.display = "block";
+
+                    // Destruir gráfico anterior
+                    if (myChart) {
+                        myChart.destroy();
+                    }
+
+                    // Limpar canvas
+                    const ctx = canvas.getContext('2d');
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                    // Criar novo gráfico Chart.js
+                    myChart = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: labels,
+                            datasets: [{
+                                label: 'Ângulo do Joelho Esquerdo (graus)',
+                                data: valores,
+                                borderColor: '#4db8ff',
+                                backgroundColor: 'rgba(77, 184, 255, 0.1)',
+                                borderWidth: 2,
+                                tension: 0.4,
+                                pointRadius: 1,
+                                pointHoverRadius: 5
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: { display: true, position: 'top' },
+                                title: { display: true, text: 'Análise de Movimento - Joelho Esquerdo' }
+                            },
+                            scales: {
+                                x: { title: { display: true, text: 'Tempo (s)' } },
+                                y: { title: { display: true, text: 'Ângulo (graus)' } }
+                            }
+                        }
+                    });
+
+                    document.getElementById("statusTexto").textContent = `✅ Gráfico carregado com ${dados.length} pontos de dados`;
+                };
+                reader.readAsText(file);
+            };
+        }
+    </script>
+
+</body>
+
+</html>
